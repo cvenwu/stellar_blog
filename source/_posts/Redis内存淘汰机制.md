@@ -1,0 +1,286 @@
+---
+title: （Redis系列第三篇）Redis内存淘汰机制
+tags: [Redis]
+categories: [Redis]
+date: 2024-04-26 23:09:50
+description:
+cover: http://e0.ifengimg.com/09/2019/0709/2B80F797AAC947CCFFE2C365A0149CD4563092DC_size597_w2560_h1440.png
+banner: http://e0.ifengimg.com/09/2019/0709/2B80F797AAC947CCFFE2C365A0149CD4563092DC_size597_w2560_h1440.png
+sticky:
+mermaid:
+katex:
+mathjax:
+topic: Redis
+author: yirufeng
+references:
+comments:
+indexing:
+breadcrumb:
+leftbar:
+rightbar:
+type: tech
+---
+
+
+
+## toc 文档目录树
+
+{% toc wiki:xxx [open:true] [display:mobile] title %}
+
+## 渲染外部markdown文件
+
+{% folding %}
+{% md https://raw.github.xaox.cc/xaoxuu/hexo-theme-stellar/main/README.md %}
+{% endfolding %}
+
+
+
+## 时间线
+
+{% timeline %}
+<!-- node 2021 年 2 月 16 日 -->
+主要部分功能已经开发的差不多了。
+{% image /assets/wiki/stellar/photos/hello@1x.png width:300px %}
+<!-- node 2021 年 2 月 11 日 -->
+今天除夕，也是生日，一个人在外地过年+过生日，熬夜开发新主题，尽量在假期结束前放出公测版。
+{% endtimeline %}
+
+
+
+## box盒子容器
+{% box [title] [color:color] [child:codeblock/tabs] %}
+...
+{% endbox %}
+
+## 彩色代码块
+{% grid %}
+<!-- cell -->
+**推荐的写法**
+{% box child:codeblock color:green %}
+```swift
+func test() {
+    // ...
+}
+```
+{% endbox %}
+<!-- cell -->
+**不推荐的写法**
+{% box child:codeblock color:red %}
+```swift
+func test() -> () {
+    // ...
+}
+```
+{% endbox %}
+{% endgrid %}
+
+## 镶嵌其他标签
+{% box child:tabs %}
+{% tabs %}
+<!-- tab 图文混排 -->
+{% image /assets/xaoxuu/blog/2020-0627a@2x.webp 个人电脑作为办公设备时，我们该如何保护隐私？ download:true %}
+公司一般都会强制安装安防软件，这些软件要求开机自启动，要求有屏幕录制权限、完全的磁盘访问权限包括相册图库。因此如果使用自己的 MacBook 作为办公设备，必须要把生活区和工作区完全独立开，安装在两个磁盘分区，并且对磁盘分区进行加密。
+<!-- tab 示例代码 -->
+<script src="https://gist.github.com/xaoxuu/c983c958ef0deab819376c231e977ba7.js"></script>
+{% endtabs %}
+{% endbox %}
+
+
+## folding折叠容器
+
+{% folding title [codeblock:bool] [open:bool] [color:color] %}
+content
+{% endfolding %}
+
+## 彩色可折叠代码块
+
+{% folding title [codeblock:bool] [open:bool] [color:color] %}
+content
+{% endfolding %}
+
+## folders 多个折叠容器聚合
+
+{% folders %}
+<!-- folder 题目1 -->
+这是答案1
+<!-- folder 题目2 -->
+这是答案2
+<!-- folder 题目3 -->
+这是答案3
+{% endfolders %}
+
+## tabs 分栏容器
+
+{% tabs active:2 align:center %}
+
+<!-- tab 图片 -->
+{% image /assets/wiki/stellar/photos/hello@1x.png width:300px %}
+
+<!-- tab 代码块 -->
+```swift
+let x = 123
+print("hello world")
+```
+
+<!-- tab 表格 -->
+| a | b | c |
+| --- | --- | --- |
+| a1 | b1 | c1 |
+| a2 | b2 | c2 |
+
+{% endtabs %}
+
+## grid 网格分区容器
+
+{% grid %}
+<!-- cell -->
+{% image https://images.unsplash.com/photo-1653979731557-530f259e0c2c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80 download:https://unsplash.com/photos/bcql6CtuNv0/download?ixid=MnwxMjA3fDB8MXx0b3BpY3x8NnNNVmpUTFNrZVF8fHx8fDJ8fDE2Njg4NDAxMDI&force=true %}
+<!-- cell -->
+**[Unsplash Photo](https://unsplash.com/photos/bcql6CtuNv0)**
+
+The Galactic Center is the rotational center of the Milky Way galaxy. Its central massive object is a supermassive black hole of about 4 million solar masses, which is called Sagittarius A*. Its mass is equal to four million suns. The center is located 25,800 light years away from Earth.
+
+> Ōwhiro Bay, Wellington, New Zealand
+> Published on May 31, 2022
+> SONY, ILCE-6000
+> Free to use under the Unsplash License
+
+{% endgrid %}
+
+修改最小宽度
+
+{% grid w:350px %}
+...
+{% endgrid %}
+
+
+固定列数
+
+{% grid c:2 %}
+...
+{% endgrid %}
+
+背景样式
+
+普通 Box 样式：
+
+{% grid bg:box w:150px %}
+<!-- cell -->
+cell 1
+<!-- cell -->
+cell 2
+<!-- cell -->
+cell 3
+<!-- cell -->
+cell 4
+{% endgrid %}
+
+可浮起的卡片样式：
+
+{% grid bg:card w:150px %}
+<!-- cell -->
+cell 1
+<!-- cell -->
+cell 2
+<!-- cell -->
+cell 3
+<!-- cell -->
+cell 4
+{% endgrid %}
+
+设置间距
+
+{% grid bg:card gap:32px w:120px %}
+<!-- cell -->
+cell 1
+<!-- cell -->
+cell 2
+<!-- cell -->
+cell 3
+<!-- cell -->
+cell 4
+{% endgrid %}
+
+
+设置圆角半径
+
+{% grid bg:card br:4px w:150px %}
+<!-- cell -->
+cell 1
+<!-- cell -->
+cell 2
+<!-- cell -->
+cell 3
+<!-- cell -->
+cell 4
+{% endgrid %}
+
+
+## gallery 图库容器
+
+
+{% gallery %}
+![@tianhao_wang](https://images.unsplash.com/photo-1688142202243-e218ad203952?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDYzfEZ6bzN6dU9ITjZ3fHxlbnwwfHx8fHw%3D)
+![@eberhard](https://images.unsplash.com/photo-1700994630045-f7a20df6d92e?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8MjN8fHxlbnwwfHx8fHw%3D)
+![@eberhard](https://images.unsplash.com/photo-1533274221104-015a584a1005?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE4fGJvOGpRS1RhRTBZfHxlbnwwfHx8fHw%3D)
+![@eberhard](https://images.unsplash.com/photo-1539604214100-ab860d9082e0?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDIxfGJvOGpRS1RhRTBZfHxlbnwwfHx8fHw%3D)
+![@eberhard](https://images.unsplash.com/photo-1698843848092-588f9c1bb0bd?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8Mzh8fHxlbnwwfHx8fHw%3D)
+![@vklemen](https://images.unsplash.com/photo-1516571748831-5d81767b788d?q=80&w=2574&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)
+{% endgallery %}
+
+## 用于独立页面顶部
+
+{% banner 随记 bg:/assets/banner/notes.jpg %}
+{% navbar active:/notes/ [随记](/notes/) [收藏](/bookmark/) %}
+{% endbanner %}
+
+## 用于用户个人资料页
+
+{% banner 某某 这是个人简介 avatar:http://cdn-hw-static2.shanhutech.cn/bizhi/staticwp/202312/013c93d0c39794654fa5eec58fbcfefc--946699478.jpg bg:/assets/banner/nebula.jpg %}
+{% endbanner %}
+
+
+## 用作文章摘要卡片
+
+{% banner 博客进阶：自动化部署 本文讲了如何利用脚本和 GitHub Actions 简化博客搭建和部署流程，提高效率。 bg:http://cdn-hw-static2.shanhutech.cn/bizhi/staticwp/202312/013c93d0c39794654fa5eec58fbcfefc--946699478.jpg link:/blog/20221126/ %}
+{% endbanner %}
+
+
+## about 关于容器
+
+{% about avatar:http://cdn-hw-static2.shanhutech.cn/bizhi/staticwp/202312/013c93d0c39794654fa5eec58fbcfefc--946699478.jpg height:80px %}
+
+<img height="32px" alt="XAOXUU" src="/assets/xaoxuu/logo/180x30@2x.png">
+
+**如果宇宙中真有什么终极的逻辑，那就是我们终有一天会在舰桥上重逢，直到生命终结。**
+
+XAOXUU 目前是一个 iOS 开发者，代表作品有：ProHUD、ValueX 等。在业余时间也开发了 Stellar 博客主题，更多的作品可以去项目主页查看，希望大家喜欢～
+
+{% navbar [文章](/) [项目](/wiki/) [留言](#comments) [GitHub](https://github.com/xaoxuu/) %}
+
+{% endabout %}
+
+
+## 轮播容器
+
+
+{% swiper effect:cards %}
+![](https://images.unsplash.com/photo-1625171515821-1870deb2743b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80)
+![](https://images.unsplash.com/photo-1528283648649-33347faa5d9e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80)
+![](https://images.unsplash.com/photo-1542272201-b1ca555f8505?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80)
+![](https://images.unsplash.com/photo-1524797905120-92940d3a18d6?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80)
+{% endswiper %}
+
+
+宽度
+{% swiper width:min/max %}
+...
+{% endswiper %}
+
+
+切换效果
+{% swiper width:min/max %}
+...
+{% endswiper %}
+
+
