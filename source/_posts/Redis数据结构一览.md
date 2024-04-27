@@ -38,6 +38,7 @@ type: tech
 ## Redis对象系统介绍
 
 > 对于Redis数据库保存的键值对来说，键总是一个字符串对象，而值则可以是字符串对象、列表对象、哈希对象、集合对象或者有序集合对象的其中一种。
+> Redis使用对象来表示数据库中的键和值，每次当我们在Redis的数据库中新创建一个键值对时，我们至少会创建两个对象，一个对象用作键值对的键（键对象），另一个对象用作键值对的值（值对象）。
 
 
 {% grid %}
@@ -57,12 +58,15 @@ typedef struct redisObject {
 **对象详解**
 
 > Redis中的每个对象都由一个redisObject结构表示，该结构中和保存数据有关的三个属性分别是type属性、encoding属性和ptr属性：
-- 对象的type属性记录了对象的类型，可以是如下类型中的一种
-- 对象的ptr指针指向对象的底层实现数据结构，而这些数据结构由对象的encoding属性决定。
-- encoding属性记录了对象所使用的编码，也即是说这个对象使用了什么数据结构作为对象的底层实现，这个属性的值可以是表8-3列出的常量的其中一个
+- type属性记录了对象的类型，可以是如下类型（`REDIS_STRING`、`REDIS_LIST`、`REDIS_HASH`、`REDIS_SET`、`REDIS_ZSET`）中的一种。`TYPE`命令返回数据库键对应的值对象的类型
+- ptr指针指向对象的底层实现数据结构，而这些数据结构由对象的encoding属性决定。
+- encoding属性记录了对象所使用的编码，也即是说这个对象使用了什么数据结构作为对象的底层实现，这个属性的值可以是`REDIS_ENCODING_INT`、`REDIS_ENCODING_EMBSTR`、`REDIS_ENCODING_RAW`、`REDIS_ENCODING_HT`、`REDIS_ENCODING_LINKEDLIST`、`REDIS_ENCODING_ZIPLIST`、`REDIS_ENCODING_INTSET`、`REDIS_ENCODING_SKIPLIST`的其中一个
 
 {% endgrid %}
-
+| Syntax      | Description |
+| ----------- | ----------- |
+| Header      | Title       |
+| Paragraph   | Text        |
 
 
 123
